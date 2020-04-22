@@ -5,15 +5,24 @@
 
 #define MAX_PACKET_LEN 65535
 
-void handle_packet(uint8_t*_, const struct pcap_pkthdr* header, const uint8_t* data) {
-  // TODO: skip header more portably
-  data += 16; // advance pointer by 16 to skip the Linux SLL header
+void handle_ipv4(unsigned total_len, const uint8_t* data) {
+  // TODO: bounds checks
 
-  unsigned char version = data[0] >> 4;
-  if (version != 4 && version != 6) fprintf(stderr, "Invalid version: %d\n", version);
-  unsigned char ihl = (data[0] & 0xf) * 4;
+  if (total_len < 20) {
+    fprintf(stderr, "Packet too short: %d < 20\n", total_len);
+    // not enough space for even a minimal header, wtf
+    return;
+  }
+
+  unsigned header_len = (data[0] & 0xf) * 4;
   // DSCP, ECN ignored
-  unsigned short len = (data[2] << 8 | data[3]);
+  unsigned data_len = (data[2] << 8 | data[3]);
+
+  if (data_len != total_len) {
+    fprintf(stderr, "Self-reported length doesn't match: %d != %d\n", data_len, total_len);
+    return;
+  }
+
   // ID ignored
   // bool evil = data[6] & 0x80; // RFC3514
   // other flags and fragment offset ignored
@@ -37,16 +46,44 @@ void handle_packet(uint8_t*_, const struct pcap_pkthdr* header, const uint8_t* d
   // ignore options
 
   printf(
-    "IPv%d, %d bytes (%d header), "
+    "IPv4, %d bytes (%d header), "
     "protocol: %s (#%d), "
     "from: %d.%d.%d.%d, "
     "to: %d.%d.%d.%d"
     "\n",
-    version, len, ihl,
+    data_len, header_len,
     protocol_name, protocol_num,
     source_ip[0], source_ip[1], source_ip[2], source_ip[3],
     dest_ip[0], dest_ip[1], dest_ip[2], dest_ip[3]
   );
+}
+
+void handle_ipv6(unsigned len, const uint8_t* data) {
+  puts("IPv6 packet received; not implemented yet");
+}
+
+void handle_packet(uint8_t*_, const struct pcap_pkthdr* header, const uint8_t* data) {
+  if (header->len != header->caplen) {
+    // Not enough buffer space, we didn't get the whole packet. :(
+    return;
+  }
+  // TODO: skip header more portably
+  if (header->caplen < 16) {
+    // not a full packet?? SLL requires 16 bytes at LEAST
+    return;
+  }
+  data += 16; // advance pointer by 16 to skip the Linux SLL header
+
+  unsigned char version = data[0] & 0xf0;
+  if (version == 0x40) {
+    handle_ipv4(header->caplen - 16, data);
+  } else if (version == 0x60) {
+    handle_ipv6(header->caplen - 16, data);
+  } else {
+    fprintf(stderr, "Unknown IP version: %d\n", version);
+    // some other version of IP??
+    return;
+  }
 }
 
 int main() {
