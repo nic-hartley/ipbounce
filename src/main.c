@@ -15,7 +15,7 @@ void handle_packet(uint8_t*_, const struct pcap_pkthdr* header, const uint8_t* d
   // DSCP, ECN ignored
   unsigned short len = (data[2] << 8 | data[3]);
   // ID ignored
-  bool evil = data[6] & 0x80; // RFC3514
+  // bool evil = data[6] & 0x80; // RFC3514
   // other flags and fragment offset ignored
   unsigned char ttl = data[8];
   unsigned char protocol_num = data[9];
@@ -31,21 +31,21 @@ void handle_packet(uint8_t*_, const struct pcap_pkthdr* header, const uint8_t* d
     default: protocol_name = "Something else"; break;
   }
   // skip checksum
+  unsigned char source_ip[4] = { data[12], data[13], data[14], data[15] };
+  unsigned char dest_ip[4] = { data[16], data[17], data[18], data[19] };
 
-  // unsigned opt_start = 5 * 4;
-  // unsigned opt_end = ihl * 4;
-  // for (unsigned i = opt_start; i < opt_end; ++i) {
-
-  // }
-  // printf("ihl=%d\n", ihl);
+  // ignore options
 
   printf(
-    "IPv%d, %d bytes (%d header),"
-    " %sevil, "
-    "protocol: %s (#%d)\n",
+    "IPv%d, %d bytes (%d header), "
+    "protocol: %s (#%d), "
+    "from: %d.%d.%d.%d, "
+    "to: %d.%d.%d.%d"
+    "\n",
     version, len, ihl,
-    evil ? "" : "not ",
-    protocol_name, protocol_num
+    protocol_name, protocol_num,
+    source_ip[0], source_ip[1], source_ip[2], source_ip[3],
+    dest_ip[0], dest_ip[1], dest_ip[2], dest_ip[3]
   );
 }
 
@@ -135,6 +135,5 @@ int main() {
 
   printf("Receiving on type-%d link\n", pcap_datalink(dev));
   pcap_loop(dev, -1, handle_packet, NULL);
-  puts("Captured 100 packets");
   pcap_close(dev);
 }
