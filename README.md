@@ -5,6 +5,8 @@ A host asks the bouncer to connect it and another IP, the guest.
 After that, any packets that the bouncer receives from the host are forwarded to the guest, and vice versa.
 This allows ipbouncers to be agnostic to the actual protocol being used over them.
 
+ipbounce is also version-agnostic; it accepts both IPv4 and IPv6 for control and connections.
+
 Specifically, ipbounce:
 
 - Listens for all incoming IP packets, regardless of protocol
@@ -13,8 +15,6 @@ Specifically, ipbounce:
 - Change the "destination" in the packet to the other end of the connection
 - Reset the TTL to 255
 - Send the packet to the other end of the connection, otherwise unchanged
-
-It's currently IPv4 only -- any IPv6 packets are immediately discarded.
 
 Note that this is currently a project to (re)familiarize myself with sockets and C.
 There are **several** gaping security holes.
