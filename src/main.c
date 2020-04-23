@@ -59,8 +59,17 @@ void handle_ipv4(unsigned total_len, const uint8_t* packet) {
   );
 }
 
-void handle_ipv6(unsigned len, const uint8_t* data) {
-  puts("IPv6 packet received; not implemented yet");
+void handle_ipv6(unsigned total_len, const uint8_t* packet) {
+  if (total_len < 40) {
+    fprintf(stderr, "Packet too short: %d < 20\n", total_len);
+    // not enough space for even a minimal header, wtf
+    return;
+  }
+  unsigned payload_len = packet[4] << 8 | packet[5];
+  if (payload_len != total_len) {
+    fprintf(stderr, "Reported length doesn't match: %d != %d\n", payload_len, total_len);
+  }
+  
 }
 
 void handle_packet(uint8_t*_, const struct pcap_pkthdr* header, const uint8_t* data) {
