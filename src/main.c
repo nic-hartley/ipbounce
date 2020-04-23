@@ -5,7 +5,21 @@
 
 #define MAX_PACKET_LEN 65535
 
-void handle_ipv4(unsigned total_len, const uint8_t* data) {
+const char* get_protocol_name(unsigned char num) {
+  switch (num) {
+    // https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xml
+    // (and I'm claiming 180)
+    case 1: return "ICMP";
+    case 4: return "Packet encapsulation";
+    case 6: return "TCP";
+    case 17: return "UDP";
+    case 69: return "Nice (also SATNET)";
+    case 180: return "ipbounce setup";
+    default: return "Something else";
+  }
+}
+
+void handle_ipv4(unsigned total_len, const uint8_t* packet) {
   // TODO: bounds checks
 
   if (total_len < 20) {
@@ -14,34 +28,21 @@ void handle_ipv4(unsigned total_len, const uint8_t* data) {
     return;
   }
 
-  unsigned header_len = (data[0] & 0xf) * 4;
+  unsigned header_len = (packet[0] & 0xf) * 4;
   // DSCP, ECN ignored
-  unsigned data_len = (data[2] << 8 | data[3]);
+  unsigned payload_len = packet[2] << 8 | packet[3];
 
-  if (data_len != total_len) {
-    fprintf(stderr, "Self-reported length doesn't match: %d != %d\n", data_len, total_len);
+  if (payload_len != total_len) {
+    fprintf(stderr, "Reported length doesn't match: %d != %d\n", payload_len, total_len);
     return;
   }
 
-  // ID ignored
   // bool evil = data[6] & 0x80; // RFC3514
-  // other flags and fragment offset ignored
-  unsigned char ttl = data[8];
-  unsigned char protocol_num = data[9];
-  const char* protocol_name = NULL;
-  switch (protocol_num) {
-    // https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xml
-    case 1: protocol_name = "ICMP"; break;
-    case 4: protocol_name = "Packet encapsulation"; break;
-    case 6: protocol_name = "TCP"; break;
-    case 17: protocol_name = "UDP"; break;
-    case 69: protocol_name = "Nice (also SATNET)"; break;
-    case 180: protocol_name = "ipbounce setup"; break;
-    default: protocol_name = "Something else"; break;
-  }
-  // skip checksum
-  unsigned char source_ip[4] = { data[12], data[13], data[14], data[15] };
-  unsigned char dest_ip[4] = { data[16], data[17], data[18], data[19] };
+  unsigned char ttl = packet[8];
+  unsigned char protocol_num = packet[9];
+
+  const unsigned char* source_ip = &packet[12];
+  const unsigned char* dest_ip = &packet[16];
 
   // ignore options
 
@@ -51,8 +52,8 @@ void handle_ipv4(unsigned total_len, const uint8_t* data) {
     "from: %d.%d.%d.%d, "
     "to: %d.%d.%d.%d"
     "\n",
-    data_len, header_len,
-    protocol_name, protocol_num,
+    payload_len, header_len,
+    get_protocol_name(protocol_num), protocol_num,
     source_ip[0], source_ip[1], source_ip[2], source_ip[3],
     dest_ip[0], dest_ip[1], dest_ip[2], dest_ip[3]
   );
