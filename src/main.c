@@ -14,7 +14,7 @@ const char* get_protocol_name(unsigned char num) {
     case 6: return "TCP";
     case 17: return "UDP";
     case 69: return "Nice (also SATNET)";
-    case 180: return "ipbounce setup";
+    case 253: return "ipbounce setup";
     default: return "Something else";
   }
 }

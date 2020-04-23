@@ -10,7 +10,7 @@ ipbounce is also version-agnostic; it accepts both IPv4 and IPv6 for control and
 Specifically, ipbounce:
 
 - Listens for all incoming IP packets, regardless of protocol
-- If the protocol type is 180, follows the instructions
+- If the protocol type is 253, follows the instructions
 - If the source IP has no associated connection, drops the packet silently
 - Changes the "destination" in the packet to the other end of the connection
 - Resets the TTL to 255
@@ -22,7 +22,7 @@ See **§&nbsp;Security** for more information.
 
 ## Setting up a connection
 
-When you want to use the bouncer, send it an IP packet with the protocol type 180 and the following big-endian data:
+When you want to use the bouncer, send it an IP packet with the protocol type 253 and the following big-endian data:
 
 - The single byte `0x01`
 - Guest IP
@@ -40,7 +40,7 @@ However protocols like TCP should still easily accomodate.
 
 ## Tearing down a connection
 
-When you're finished with the bouncer, send it an IP packet with the protocol type 180 and the following big-endian data:
+When you're finished with the bouncer, send it an IP packet with the protocol type 253 and the following big-endian data:
 
 - The single byte `0x02`
 
